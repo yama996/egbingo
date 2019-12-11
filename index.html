@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/105/three.min.js"></script>
+		<script src="js/controls/OrbitControls.js"></script>
+		<style type="text/css">
+			.nurutto_btn_red {
+				display: inline-block;
+				width: 160px;
+				padding: 0.8em;
+				text-align: center;
+				text-decoration: none;
+				color: #fff;
+				background:#F1322C;
+				border-bottom:4px solid #AD2022;
+				border-radius: 4px;
+				font-family:'Cooper Black','fantasy','MS PGothic';
+			}
+			.nurutto_btn_red:hover {
+				 cursor: pointer;
+				 text-decoration: none;
+				 background:#AD2022;
+				 transform: translate3d(0, 4px, 0);
+				 border-bottom: none;
+				 font-family:'Cooper Black','fantasy','MS PGothic';
+			}
+		</style>
+
+		<script>
+			// ページの読み込みを待つ
+			window.addEventListener("load", init);
+
+			function init() {
+				// ↓↓↓↓↓↓↓↓↓ここからテンプレみたいなもん
+				// サイズを指定
+				const width = document.documentElement.clientWidth - 10;
+				const height = document.documentElement.clientHeight - 100;
+
+				// レンダラーを作成
+				const renderer = new THREE.WebGLRenderer({
+					canvas: document.querySelector("#myCanvas")
+				});
+
+				renderer.setPixelRatio(window.devicePixelRatio);
+				renderer.setSize(width, height);
+				// シーンを作成
+				const scene = new THREE.Scene();
+
+				// カメラを作成
+				const camera = new THREE.PerspectiveCamera(40, width / height);
+				camera.position.set(0, 20, 700);
+				// カメラコントローラーを作成
+				const controls = new THREE.OrbitControls(camera);
+
+				// // 座標軸を表示
+				// var axes = new THREE.AxisHelper(1000);
+				// scene.add(axes);
+
+				// グループを作る
+				const group = new THREE.Group();
+				// 3D空間にグループを追加する
+				scene.add(group);
+				// 平行光源を作成
+				const directionalLight = new THREE.DirectionalLight(0xffffff, 3);
+				directionalLight.position.set(1, 1, 1);
+				scene.add(directionalLight);
+
+				// フォグを設定
+				// new THREE.Fog(色, 開始距離, 終点距離);
+				scene.fog = new THREE.Fog(0x000000, 10, 1500);
+				// ↑↑↑↑↑↑↑↑↑↑テンプレみたいなもんここまで
+
+				// チタマを追加
+				const geometry_earth = new THREE.SphereGeometry(200, 20, 20);
+				const material_earth = new THREE.MeshStandardMaterial({
+					map: new THREE.TextureLoader().load("imgs/earthmap1k.jpg")
+				});
+				// メッシュを作成
+				const earth = new THREE.Mesh(geometry_earth, material_earth);
+				earth.position.z = -200;
+				// 3D空間にメッシュを追加
+				scene.add(earth);
+
+				// 1～75用意（表示用）
+				for (let i = 0; i < 75; i++) {
+					var loader = new THREE.FontLoader();
+					loader.load("helvetiker_bold.typeface.json", function(font) {
+						var textGeometry = new THREE.TextGeometry(String(i + 1), {
+							font: font,
+							size: 20,
+							height: 5,
+							curveSegments: 12
+						});
+						var material = new THREE.MeshLambertMaterial({ color: 0xfcfc00 });
+						var textMesh = new THREE.Mesh(textGeometry, material);
+
+						textMesh.position.set(
+							-370 + 50 * i - Math.floor(i / 15) * 750, // X座標
+							0, // Y座標
+							-200 + Math.floor(i / 15) * 50 // Z座標
+						);
+						textMesh.name = "panel" + (i + 1);
+						textMesh.visible = false;
+						textMesh.rotation.set(Math.PI / -2, 0, 0);
+
+						// グループに追加する
+						group.add(textMesh);
+					});
+				}
+
+				// 現在の数字を表示する用のテキスト
+				nowtext("bingo", -70);
+				function nowtext(nowtext, ichi) {
+					var loader_now = new THREE.FontLoader();
+					loader_now.load("helvetiker_bold.typeface.json", function(font) {
+						var textGeometry = new THREE.TextGeometry(nowtext, {
+							font: font,
+							size: 50,
+							height: 5,
+							curveSegments: 12
+						});
+						var material = new THREE.MeshLambertMaterial({ color: 0xffffff });
+						var textMesh = new THREE.Mesh(textGeometry, material);
+
+						textMesh.position.set(
+							ichi, // X座標
+							0, // Y座標
+							150 // Z座標
+						);
+						textMesh.rotation.set(Math.PI / -2, 0, 0);
+						textMesh.name = "nowtext";
+						// グループに追加する
+						group.add(textMesh);
+					});
+				}
+
+				// 横になってるので回転させる。
+				group.rotation.set(Math.PI / 2, 0, 0);
+
+				tick();
+				// 毎フレーム時に実行されるループイベントです
+				function tick() {
+					// 原点方向を見つめる
+					camera.lookAt(new THREE.Vector3(0, 0, 0));
+
+					// 地球を回す
+					earth.rotation.y += 0.002;
+
+					// レンダリング
+					renderer.render(scene, camera);
+					requestAnimationFrame(tick);
+				}
+
+				// マウスの動作
+				let mouseX = 0; // マウス座標
+				document.addEventListener("mousemove", event => {
+					mouseX = event.pageX;
+				});
+
+				// ボタンクリックイベントはここから
+				// 1～75をランダムに並び変えた配列用意
+				let index = 0;
+				var array = [...Array(75).keys()].map(i => ++i);
+				for (var i = array.length - 1; i >= 0; i--) {
+					// 0~iのランダムな数値を取得
+					var rand = Math.floor(Math.random() * (i + 1));
+					// 配列の数値を入れ替える
+					[array[i], array[rand]] = [array[rand], array[i]];
+				}
+				var btn = document.getElementById("btn");
+				// ボタンがくりっくされたら数字を表示する
+				btn.addEventListener(
+					"click",
+					function() {
+						if (index < 75) {
+							var object = scene.getObjectByName("panel" + array[index]);
+
+							// 元の文字を消す
+							var object2 = scene.getObjectByName("nowtext");
+							group.remove(object2);
+							object2.material.dispose();
+							object2.geometry.dispose();
+
+							// 現在の数字を表示 ※真ん中にならないので微妙に表示位置調整
+							var ichi = -50;
+							if (array[index] < 10) {
+								ichi = -25;
+							}
+							nowtext(String(array[index]), ichi);
+							object.visible = true;
+
+							index++;
+						}
+					},
+					false
+				);
+
+				// 星をちりばめる
+				var addRabomStar = function() {
+					var geometry_star = new THREE.Geometry();
+					for (i = 0; i < 2000; i++) {
+						var dod = new THREE.Vector3(
+							Math.random() * 2000 - 1000,
+							Math.random() * 2000 - 1000,
+							Math.random() * 2000 - 1000
+						);
+						geometry_star.vertices.push(dod);
+					}
+					for (var i = 0; i < 5; i++) {
+						var material_star = new THREE.ParticleBasicMaterial({
+							color: 0xffffff,
+							size: 2,
+							blending: THREE.AdditiveBlending,
+							transparent: true
+						});
+						var particles = new THREE.ParticleSystem(
+							geometry_star,
+							material_star
+						);
+						particles.rotation.set(
+							Math.random() * 6,
+							Math.random() * 6,
+							Math.random() * 6
+						);
+						scene.add(particles);
+					}
+				};
+				addRabomStar();
+
+				// 会社のロゴをちりばめる
+				function rogosprite() {
+					const material3 = new THREE.SpriteMaterial({
+						map: new THREE.TextureLoader().load("imgs/egridlogo.png")
+					});
+
+					material3.fog = true;
+					// ビルボードを作成
+					for (let i = 0; i < 2000; i++) {
+						const sprite = new THREE.Sprite(material3);
+
+						// ランダムな座標に配置
+						sprite.position.x = 5000 * (Math.random() - 0.5);
+						sprite.position.y = 1000 * Math.random() - 40;
+						sprite.position.z = 5000 * (Math.random() - 0.5);
+						// 必要に応じてスケールを調整
+						sprite.scale.set(10, 10, 10);
+						scene.add(sprite);
+					}
+				}
+				rogosprite();
+			}
+		</script>
+	</head>
+	<body>
+		<canvas id="myCanvas"></canvas>
+		<a href="#" class="nurutto_btn_red" id="btn">NEXT></a>
+	</body>
+</html>
